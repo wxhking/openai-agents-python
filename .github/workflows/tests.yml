@@ -47,7 +47,7 @@ jobs:
         run: echo "Skipping lint for non-code changes."
 
   typecheck:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     timeout-minutes: 12
     steps:
       - name: Checkout repository
@@ -82,7 +82,7 @@ jobs:
         run: echo "Skipping typecheck for non-code changes."
 
   mypy-win32:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     timeout-minutes: 12
     steps:
       - name: Checkout repository
@@ -117,7 +117,7 @@ jobs:
         run: echo "Skipping Windows mypy for non-code changes."
 
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     # Python 3.14 also runs coverage and installs Chromium with system dependencies.
     timeout-minutes: ${{ matrix.python-version == '3.14' && 30 || 10 }}
     strategy:
@@ -167,7 +167,7 @@ jobs:
         run: echo "Skipping tests for non-code changes."
 
   containers:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     timeout-minutes: 15
     env:
       OPENAI_API_KEY: fake-for-tests
@@ -254,7 +254,7 @@ jobs:
     name: packaged-contract (3.10)
     needs: prospective-release-contract
     if: needs.prospective-release-contract.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     env:
       OPENAI_AGENTS_INTEGRATION_PYTHON: "3.10"
       OPENAI_API_KEY: fake-for-tests
@@ -291,7 +291,7 @@ jobs:
     name: packaged-contract (3.14)
     needs: prospective-release-contract
     if: needs.prospective-release-contract.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     env:
       OPENAI_AGENTS_INTEGRATION_PYTHON: "3.14"
       OPENAI_API_KEY: fake-for-tests
@@ -327,7 +327,7 @@ jobs:
   packaged-contract-windows:
     needs: prospective-release-contract
     if: needs.prospective-release-contract.outputs.run == 'true'
-    runs-on: windows-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-windows-x64"}' || '"windows-latest"') }}
     timeout-minutes: 15
     env:
       OPENAI_AGENTS_INTEGRATION_PYTHON: "3.14"
@@ -404,7 +404,7 @@ jobs:
         run: echo "Skipping prospective release contract for non-code changes."
 
   tests-windows:
-    runs-on: windows-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-windows-x64"}' || '"windows-latest"') }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -441,7 +441,7 @@ jobs:
         run: echo "Skipping tests for non-code changes."
 
   build-docs:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.repository == 'openai/openai-agents-python' && '{"group":"codex-runners","labels":"codex-linux-x64"}' || '"ubuntu-latest"') }}
     timeout-minutes: 10
     env:
       OPENAI_API_KEY: fake-for-tests
