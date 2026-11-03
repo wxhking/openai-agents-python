@@ -79,21 +79,19 @@ class TestStartOpenAIConversationsSession:
     async def test_start_with_none_client(self):
         """Test starting a conversation session with None client (uses default)."""
         with patch(
-            "agents.memory.openai_conversations_session.get_default_openai_client"
+            "agents.memory.openai_conversations_session.get_default_openai_client_with_fallback"
         ) as mock_get_default:
-            with patch("agents.memory.openai_conversations_session.AsyncOpenAI"):
-                # Test case 1: get_default_openai_client returns a client
-                mock_default_client = AsyncMock()
-                mock_default_client.conversations.create.return_value = MagicMock(
-                    id="default_client_id"
-                )
-                mock_get_default.return_value = mock_default_client
+            mock_default_client = AsyncMock()
+            mock_default_client.conversations.create.return_value = MagicMock(
+                id="default_client_id"
+            )
+            mock_get_default.return_value = mock_default_client
 
-                conversation_id = await start_openai_conversations_session(None)
+            conversation_id = await start_openai_conversations_session(None)
 
-                assert conversation_id == "default_client_id"
-                mock_get_default.assert_called_once()
-                mock_default_client.conversations.create.assert_called_once_with(items=[])
+            assert conversation_id == "default_client_id"
+            mock_get_default.assert_called_once()
+            mock_default_client.conversations.create.assert_called_once_with(items=[])
 
     @pytest.mark.asyncio
     async def test_start_preserves_falsy_default_client(self):
@@ -102,7 +100,7 @@ class TestStartOpenAIConversationsSession:
         mock_default_client.conversations.create.return_value = MagicMock(id="default_client_id")
 
         with patch(
-            "agents.memory.openai_conversations_session.get_default_openai_client",
+            "agents.memory.openai_conversations_session.get_default_openai_client_with_fallback",
             return_value=mock_default_client,
         ):
             conversation_id = await start_openai_conversations_session(None)
@@ -112,27 +110,21 @@ class TestStartOpenAIConversationsSession:
 
     @pytest.mark.asyncio
     async def test_start_with_none_client_fallback(self):
-        """Test starting a conversation session when get_default_openai_client returns None."""
+        """Test starting a conversation session when no default client or key is set."""
         with patch(
-            "agents.memory.openai_conversations_session.get_default_openai_client"
+            "agents.memory.openai_conversations_session.get_default_openai_client_with_fallback"
         ) as mock_get_default:
-            with patch(
-                "agents.memory.openai_conversations_session.AsyncOpenAI"
-            ) as mock_async_openai:
-                # Test case 2: get_default_openai_client returns None, fallback to AsyncOpenAI()
-                mock_get_default.return_value = None
-                mock_fallback_client = AsyncMock()
-                mock_fallback_client.conversations.create.return_value = MagicMock(
-                    id="fallback_client_id"
-                )
-                mock_async_openai.return_value = mock_fallback_client
+            mock_fallback_client = AsyncMock()
+            mock_fallback_client.conversations.create.return_value = MagicMock(
+                id="fallback_client_id"
+            )
+            mock_get_default.return_value = mock_fallback_client
 
-                conversation_id = await start_openai_conversations_session(None)
+            conversation_id = await start_openai_conversations_session(None)
 
-                assert conversation_id == "fallback_client_id"
-                mock_get_default.assert_called_once()
-                mock_async_openai.assert_called_once()
-                mock_fallback_client.conversations.create.assert_called_once_with(items=[])
+            assert conversation_id == "fallback_client_id"
+            mock_get_default.assert_called_once()
+            mock_fallback_client.conversations.create.assert_called_once_with(items=[])
 
 
 class TestOpenAIConversationsSessionConstructor:
@@ -150,17 +142,16 @@ class TestOpenAIConversationsSessionConstructor:
     def test_init_with_conversation_id_only(self):
         """Test constructor with only conversation_id, client should be created."""
         with patch(
-            "agents.memory.openai_conversations_session.get_default_openai_client"
+            "agents.memory.openai_conversations_session.get_default_openai_client_with_fallback"
         ) as mock_get_default:
-            with patch("agents.memory.openai_conversations_session.AsyncOpenAI"):
-                mock_default_client = AsyncMock()
-                mock_get_default.return_value = mock_default_client
+            mock_default_client = AsyncMock()
+            mock_get_default.return_value = mock_default_client
 
-                session = OpenAIConversationsSession(conversation_id="test_id")
+            session = OpenAIConversationsSession(conversation_id="test_id")
 
-                assert session._session_id == "test_id"
-                assert session._openai_client is mock_default_client
-                mock_get_default.assert_called_once()
+            assert session._session_id == "test_id"
+            assert session._openai_client is mock_default_client
+            mock_get_default.assert_called_once()
 
     def test_init_with_client_only(self, mock_openai_client):
         """Test constructor with only openai_client, no conversation_id."""
@@ -172,22 +163,42 @@ class TestOpenAIConversationsSessionConstructor:
     def test_init_with_no_args_fallback(self):
         """Test constructor with no args, should create default client."""
         with patch(
-            "agents.memory.openai_conversations_session.get_default_openai_client"
+            "agents.memory.openai_conversations_session.get_default_openai_client_with_fallback"
         ) as mock_get_default:
-            with patch(
-                "agents.memory.openai_conversations_session.AsyncOpenAI"
-            ) as mock_async_openai:
-                # Test fallback when get_default_openai_client returns None
-                mock_get_default.return_value = None
-                mock_fallback_client = AsyncMock()
-                mock_async_openai.return_value = mock_fallback_client
+            mock_fallback_client = AsyncMock()
+            mock_get_default.return_value = mock_fallback_client
 
-                session = OpenAIConversationsSession()
+            session = OpenAIConversationsSession()
 
-                assert session._session_id is None
-                assert session._openai_client is mock_fallback_client
-                mock_get_default.assert_called_once()
-                mock_async_openai.assert_called_once()
+            assert session._session_id is None
+            assert session._openai_client is mock_fallback_client
+            mock_get_default.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_start_uses_sdk_configured_key_when_only_key_is_set(self):
+        """A `set_default_openai_key()` call must reach the fallback client (#5471).
+
+        The old fallback built a bare `AsyncOpenAI()`, which only reads
+        `OPENAI_API_KEY`: with the SDK key alone the construction raised
+        `OpenAIError: Missing credentials`, and with both set the conversation
+        used the environment key while model calls used the SDK key.
+        """
+        with (
+            patch("agents.models._openai_shared._default_openai_client", None),
+            patch(
+                "agents.models._openai_shared._default_openai_key",
+                "sdk-configured-key",
+            ),
+            patch("agents.models._openai_shared.AsyncOpenAI") as mock_async_openai,
+        ):
+            mock_fallback_client = AsyncMock()
+            mock_fallback_client.conversations.create.return_value = MagicMock(id="keyed_id")
+            mock_async_openai.return_value = mock_fallback_client
+
+            conversation_id = await start_openai_conversations_session(None)
+
+            assert conversation_id == "keyed_id"
+            mock_async_openai.assert_called_once_with(api_key="sdk-configured-key")
 
 
 class TestOpenAIConversationsSessionLifecycle:

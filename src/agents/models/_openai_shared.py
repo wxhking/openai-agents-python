@@ -33,6 +33,18 @@ def get_default_openai_client() -> AsyncOpenAI | None:
     return _default_openai_client
 
 
+def get_default_openai_client_with_fallback() -> AsyncOpenAI:
+    """The default shared client, or one built with the SDK-configured key.
+
+    A `set_default_openai_key()` call does not build the shared client, so code
+    that only falls back to a bare `AsyncOpenAI()` misses the SDK key entirely:
+    with no `OPENAI_API_KEY` in the environment the client cannot authenticate
+    at all, and with one set the run quietly splits between two keys. The
+    OpenAIProvider path builds its fallback client the same way.
+    """
+    return get_default_openai_client() or AsyncOpenAI(api_key=get_default_openai_key())
+
+
 def set_use_responses_by_default(use_responses: bool) -> None:
     global _use_responses_by_default
     _use_responses_by_default = use_responses

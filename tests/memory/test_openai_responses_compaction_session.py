@@ -362,7 +362,7 @@ class TestOpenAIResponsesCompactionSession:
         )
 
         with patch(
-            "agents.memory.openai_responses_compaction_session.get_default_openai_client",
+            "agents.memory.openai_responses_compaction_session.get_default_openai_client_with_fallback",
             return_value=mock_client,
         ):
             assert session.client is mock_client
